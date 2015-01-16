@@ -1,7 +1,7 @@
 {
     "name": "procergs/login-cidadao-igp-bundle",
     "type": "symfony-bundle",
-    "description": "Login Cidadão's Badge Bundle",
+    "description": "Login Cidadão's Badge and Validation Bundle",
     "keywords": ["login-cidadao", "badges", "validation"],
     "homepage": "https://github.com/PROCERGS/login-cidadao-igp-bundle",
     "license": "MIT",
@@ -12,11 +12,11 @@
         },
         {
             "name": "lordvacilaoerrocerto",
-            "email": ""
+            "email": "lordvacilaoerrocerto@users.noreply.github.com"
         }
     ],
     "require": {
-        "php": ">=5.3.0"
+        "php": ">=5.3.3"
     },
     "autoload": {
         "psr-0": { "PROCERGS\\LoginCidadao\\IgpBundle": "" }
