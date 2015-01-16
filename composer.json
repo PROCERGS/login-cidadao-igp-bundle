@@ -1,14 +1,18 @@
 {
-    "name": "procergs/login-cidadao-badges-bundle",
+    "name": "procergs/login-cidadao-igp-bundle",
     "type": "symfony-bundle",
     "description": "Login Cidadão's Badge Bundle",
-    "keywords": ["login-cidadao", "badges"],
+    "keywords": ["login-cidadao", "badges", "validation"],
     "homepage": "https://github.com/PROCERGS/login-cidadao-igp-bundle",
     "license": "MIT",
     "authors": [
         {
             "name": "Guilherme Donato",
             "email": "packagist@cadastro.dona.to"
+        },
+        {
+            "name": "lordvacilaoerrocerto",
+            "email": ""
         }
     ],
     "require": {
