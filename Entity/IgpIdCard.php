@@ -1,4 +1,5 @@
 <?php
+
 namespace PROCERGS\LoginCidadao\IgpBundle\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
@@ -9,8 +10,8 @@ use JMS\Serializer\Annotation as JMS;
 
 /**
  * @ORM\Table(name="igp_id_card")
- * @ORM\Entity
- * @ORM\HasLifecycleCallbacks 
+ * @ORM\Entity(repositoryClass="PROCERGS\LoginCidadao\IgpBundle\Entity\IgpIdCardRepository")
+ * @ORM\HasLifecycleCallbacks
  */
 class IgpIdCard
 {
@@ -32,7 +33,6 @@ class IgpIdCard
      * @JMS\Groups({"id_cards"})
      * @Assert\Length(min=1,max="66")
      * @ORM\Column(name="nome_mae", type="string", length=66, nullable=true)
-     * @RG     
      */
     protected $nomeMae;
 
@@ -162,5 +162,5 @@ class IgpIdCard
     {
         return $this->situacaoRg;
     }
-    
+
 }
