@@ -13,7 +13,7 @@ services:
 
     igp.validations.subscriber:
         class: %igp.validations.subscriber.class%
-        arguments: [ @translator, @doctrine.orm.entity_manager, @igp.validations.webservice ]
+        arguments: [ @security.context, @translator, @doctrine.orm.entity_manager, @igp.validations.webservice ]
         tags:
             - { name: kernel.event_subscriber }
 

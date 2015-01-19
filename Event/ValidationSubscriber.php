@@ -12,14 +12,15 @@ use PROCERGS\LoginCidadao\ValidationControlBundle\ValidationEvents;
 use PROCERGS\LoginCidadao\ValidationControlBundle\Event\IdCardValidateEvent;
 use PROCERGS\LoginCidadao\IgpBundle\Validator\IgpValidations;
 use PROCERGS\LoginCidadao\IgpBundle\Entity\IgpWs;
-use Symfony\Component\Form\FormError;
-use Symfony\Component\Form\FormInterface;
 use Symfony\Component\Form\Exception\OutOfBoundsException;
+use Symfony\Component\Security\Core\SecurityContextInterface;
 
 class ValidationSubscriber implements EventSubscriberInterface
 {
-
     const REQUIRED_ISO6 = 'BR-RS';
+
+    /** @var SecurityContextInterface */
+    protected $security;
 
     /**
      * @var TranslatorInterface
@@ -35,15 +36,16 @@ class ValidationSubscriber implements EventSubscriberInterface
      * @var IgpWs
      */
     protected $igpWs;
-    
     protected $lastIgpWsResult;
-    
-    public function __construct(TranslatorInterface $translator,
+
+    public function __construct(SecurityContextInterface $security,
+                                TranslatorInterface $translator,
                                 EntityManager $em, IgpWs $igpWs)
     {
+        $this->security   = $security;
         $this->translator = $translator;
-        $this->em = $em;
-        $this->igpWs = $igpWs;
+        $this->em         = $em;
+        $this->igpWs      = $igpWs;
     }
 
     public static function getSubscribedEvents()
@@ -58,11 +60,14 @@ class ValidationSubscriber implements EventSubscriberInterface
 
     public function onInitializeForm(FormEvent $form)
     {
+        if (!$this->security->isGranted('FEATURE_IGP_VALIDATION')) {
+            return;
+        }
         $data = $form->getData();
         if (!$data) {
             return;
         }
-        $iso6 = $id = null;
+        $iso6 = $id   = null;
         if ($data instanceof IdCardInterface) {
             if ($data->getState()) {
                 $iso6 = $data->getState()->getIso6();
@@ -72,9 +77,9 @@ class ValidationSubscriber implements EventSubscriberInterface
             }
         } else {
             $state = $this->em->getRepository('PROCERGSLoginCidadaoCoreBundle:State')->find($data['state']);
-            $iso6 = $state->getIso6();
+            $iso6  = $state->getIso6();
             if ($data['id']) {
-                $id = $data['id']; 
+                $id = $data['id'];
             }
         }
 
@@ -91,6 +96,9 @@ class ValidationSubscriber implements EventSubscriberInterface
 
     public function onValidate(IdCardValidateEvent $event)
     {
+        if (!$this->security->isGranted('FEATURE_IGP_VALIDATION')) {
+            return;
+        }
         $idCard = $event->getIdCard();
         if (!($idCard instanceof IdCardInterface)) {
             return;
@@ -102,16 +110,16 @@ class ValidationSubscriber implements EventSubscriberInterface
         }
 
         $validatorContext = $event->getValidatorContext();
-        $constraint = $event->getConstraint();
-        $rgNum = $idCard->getValue();
+        $constraint       = $event->getConstraint();
+        $rgNum            = $idCard->getValue();
 
         if (strlen($rgNum) != 10) {
             $validatorContext->addViolationAt('value',
-                                              IgpValidations::MESSAGE_LENGTH);
+                IgpValidations::MESSAGE_LENGTH);
         }
         if (IgpValidations::checkIdCardNumber($rgNum) === false) {
             $validatorContext->addViolationAt('value',
-                                              IgpValidations::MESSAGE_INVALID);
+                IgpValidations::MESSAGE_INVALID);
         }
         if ($idCard->getId()) {
             if ($this->em->getRepository('PROCERGSLoginCidadaoIgpBundle:IgpIdCard')->getCountByIdCard($idCard->getId())) {
@@ -132,31 +140,39 @@ class ValidationSubscriber implements EventSubscriberInterface
         $res = $this->igpWs->consultar();
         if ($res === null) {
             $validatorContext->addViolationAt('value',
-                                              IgpValidations::MESSAGE_WEBSERVICE_UNAVAILABLE);
+                IgpValidations::MESSAGE_WEBSERVICE_UNAVAILABLE);
         } else {
             if ($res['cod_retorno'] != 1) {
                 $validatorContext->addViolationAt('value',
-                                                  $res['mensagem_retorno']);
+                    $res['mensagem_retorno']);
             } else {
-                $this->lastIgpWsResult = $res;                
-                if (mb_strtoupper($igpIdCards->getNomeMae()) !==  mb_strtoupper($res['nomeMae'])) {
-                    $validatorContext->addViolationAt('igp.nomeMae', IgpValidations::MESSAGE_VALUE_MISMATCH);
+                $this->lastIgpWsResult = $res;
+                if (mb_strtoupper($igpIdCards->getNomeMae()) !== mb_strtoupper($res['nomeMae'])) {
+                    $validatorContext->addViolationAt('igp.nomeMae',
+                        IgpValidations::MESSAGE_VALUE_MISMATCH);
                 }
-                if ($igpIdCards->getDataEmissaoCI() != (\DateTime::createFromFormat('!d/m/Y', $res['dataEmissaoCI']))) {
-                    $validatorContext->addViolationAt('igp.dataEmissaoCI', IgpValidations::MESSAGE_VALUE_MISMATCH);
+                if ($igpIdCards->getDataEmissaoCI() != (\DateTime::createFromFormat('!d/m/Y',
+                        $res['dataEmissaoCI']))) {
+                    $validatorContext->addViolationAt('igp.dataEmissaoCI',
+                        IgpValidations::MESSAGE_VALUE_MISMATCH);
                 }
                 if (mb_strtoupper($igpIdCards->getNomeCI()) !== mb_strtoupper($res['nome'])) {
-                    $validatorContext->addViolationAt('igp.nomeCI', IgpValidations::MESSAGE_VALUE_MISMATCH);
+                    $validatorContext->addViolationAt('igp.nomeCI',
+                        IgpValidations::MESSAGE_VALUE_MISMATCH);
                 }
                 if ($res['situacao_rg'] != 1) {
-                    $validatorContext->addViolationAt('igp', IgpValidations::MESSAGE_IDCARD_PROBLEM);
+                    $validatorContext->addViolationAt('igp',
+                        IgpValidations::MESSAGE_IDCARD_PROBLEM);
                 }
             }
         }
     }
-    
+
     public function onPersist(FormEvent $event)
     {
+        if (!$this->security->isGranted('FEATURE_IGP_VALIDATION')) {
+            return;
+        }
         if (null === $this->lastIgpWsResult) {
             if (!$this->igpWs->isGoodToGo()) {
                 return;
@@ -174,13 +190,13 @@ class ValidationSubscriber implements EventSubscriberInterface
             $igpIdCargs->setNomeMae($this->lastIgpWsResult['nomeMae']);
         }
         $igpIdCargs->setNomeCi($this->lastIgpWsResult['nome']);
-        $igpIdCargs->setDataEmissaoCI(date_create_from_format('!d/m/Y', $this->lastIgpWsResult['dataEmissaoCI']));
+        $igpIdCargs->setDataEmissaoCI(date_create_from_format('!d/m/Y',
+                $this->lastIgpWsResult['dataEmissaoCI']));
         $igpIdCargs->setRg($this->lastIgpWsResult['rg']);
         if (isset($this->lastIgpWsResult['cpf'])) {
             $igpIdCargs->setCpf($this->lastIgpWsResult['cpf']);
         }
         $igpIdCargs->setSituacaoRg($this->lastIgpWsResult['situacao_rg']);
-        $this->em->persist($igpIdCargs);        
+        $this->em->persist($igpIdCargs);
     }
-
 }
