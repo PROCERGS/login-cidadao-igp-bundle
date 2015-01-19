@@ -30,4 +30,17 @@ class IgpIdCardRepository extends EntityRepository
             ->getQuery()
             ->getSingleScalarResult();
     }
+    
+    public function getCountByIdCard($id)
+    {
+        return $this->getEntityManager()
+        ->createQueryBuilder()
+        ->select('count(igp)')
+        ->from('PROCERGSLoginCidadaoIgpBundle:IgpIdCard', 'igp')
+        ->join('PROCERGSLoginCidadaoCoreBundle:IdCard', 'i', 'with', 'igp.idCard = i and i.id = :id')
+        ->setParameter('id', $id)
+        ->getQuery()
+        ->getSingleScalarResult();
+        
+    }
 }

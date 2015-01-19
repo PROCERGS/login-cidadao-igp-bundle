@@ -18,7 +18,7 @@ class IgpIdCard
 
     /**
      * @ORM\ManyToOne(targetEntity="PROCERGS\LoginCidadao\CoreBundle\Entity\IdCard")
-     * @ORM\JoinColumn(name="id_card_id", referencedColumnName="id")
+     * @ORM\JoinColumn(name="id_card_id", referencedColumnName="id",onDelete="CASCADE")
      */
     protected $idCard;
 

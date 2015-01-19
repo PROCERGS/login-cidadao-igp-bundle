@@ -62,6 +62,11 @@ class IgpWs
             'X-Requested-With: XMLHttpRequest'
         );
     }
+    
+    public function isGoodToGo()
+    {
+        return (null !== $this->password && null !== $this->username && null !== $this->url);        
+    }
 
     private function _common($header = array())
     {

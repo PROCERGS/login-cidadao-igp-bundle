@@ -79,10 +79,12 @@ class ValidationSubscriber implements EventSubscriberInterface
         }
 
         if ($iso6 == self::REQUIRED_ISO6) {
-            if (null === $id) {
-                $igpForm = $form->getForm();
-                $igpForm->add('igp', 'lc_igpidcardformtype',
-                    array('mapped' => false, 'label' => 'Oficial Id Card information'));
+            if (null === $id || !($b = $this->em->getRepository('PROCERGSLoginCidadaoIgpBundle:IgpIdCard')->getCountByIdCard($id))) {
+                if ($this->igpWs->isGoodToGo()) {
+                    $igpForm = $form->getForm();
+                    $igpForm->add('igp', 'lc_igpidcardformtype',
+                        array('mapped' => false, 'label' => 'Oficial Id Card information'));
+                }
             }
         }
     }
@@ -111,12 +113,21 @@ class ValidationSubscriber implements EventSubscriberInterface
             $validatorContext->addViolationAt('value',
                                               IgpValidations::MESSAGE_INVALID);
         }
+        if ($idCard->getId()) {
+            if ($this->em->getRepository('PROCERGSLoginCidadaoIgpBundle:IgpIdCard')->getCountByIdCard($idCard->getId())) {
+                $validatorContext->addViolation(IgpValidations::MESSAGE_IMUTABLE_VALID_IDCARD);
+                return;
+            }
+        }
+        if (!$this->igpWs->isGoodToGo()) {
+            return;
+        }
         try {
             $igpIdCards = $event->getValidatorContext()->getRoot()->get('igp')->getData();
         } catch (OutOfBoundsException $e) {
             $validatorContext->addViolation(IgpValidations::MESSAGE_IMUTABLE_VALID_IDCARD);
             return;
-        }        
+        }
         $this->igpWs->setRg($rgNum);
         $res = $this->igpWs->consultar();
         if ($res === null) {
@@ -147,6 +158,9 @@ class ValidationSubscriber implements EventSubscriberInterface
     public function onPersist(FormEvent $event)
     {
         if (null === $this->lastIgpWsResult) {
+            if (!$this->igpWs->isGoodToGo()) {
+                return;
+            }
             $this->igpWs->setRg($event->getData()->getValue());
             $this->lastIgpWsResult = $this->igpWs->consultar();
             if ($this->lastIgpWsResult === null) {
