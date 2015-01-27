@@ -7,7 +7,7 @@ parameters:
 services:
     igp.badges.subscriber:
         class: %igp.badges.subscriber.class%
-        arguments: [ @translator, @doctrine.orm.entity_manager ]
+        arguments: [ @translator, @doctrine.orm.entity_manager, @security.context ]
         tags:
             - { name: kernel.event_subscriber }
 
